@@ -11,7 +11,12 @@ from app.routes import *
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+
+# Corrige o erro de CORS permitindo chamadas do frontend local e da Vercel
+CORS(app, origins=[
+    "http://localhost:3000",
+    "https://controle-financeiro-efvi.vercel.app"
+])
 
 # Configurações
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
