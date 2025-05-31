@@ -13,10 +13,10 @@ load_dotenv()
 app = Flask(__name__)
 
 # Correção de CORS para permitir chamadas do frontend (localhost e produção)
-CORS(app, resources={r"/api/*": {"origins": [
+CORS(app, origins=[
     "http://localhost:3000",
     "https://controle-financeiro-efvi.vercel.app"
-]}})
+])
 
 # Configurações do app
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
