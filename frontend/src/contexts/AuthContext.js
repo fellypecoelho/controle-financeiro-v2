@@ -17,7 +17,12 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           const response = await api.verificarToken();
-          setUser(response.user);
+          
+          // Se a API retorna user junto com a verificação
+          if (response.user) {
+            setUser(response.user);
+          }
+
         } catch (error) {
           console.error('Erro ao verificar token:', error);
           logout();
@@ -32,14 +37,20 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, senha) => {
     try {
       const response = await api.login(email, senha);
-      setToken(response.token);
-      setUser(response.user);
-      localStorage.setItem('token', response.token);
+
+      // Corrigido: salvar o access_token correto
+      localStorage.setItem('token', response.access_token);
+      setToken(response.access_token);
+
+      if (response.user) {
+        setUser(response.user);
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Erro ao fazer login:', error);
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: error.response?.data?.error || 'Erro ao fazer login. Verifique suas credenciais.'
       };
     }
