@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 
-from app import db, jwt  # Agora é possível importar
+from app import db, jwt
 from app.models import *
 from app.routes import *
 
@@ -12,23 +12,23 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Corrige o erro de CORS permitindo chamadas do frontend local e da Vercel
-CORS(app, origins=[
+# Correção de CORS para permitir chamadas do frontend (localhost e produção)
+CORS(app, resources={r"/api/*": {"origins": [
     "http://localhost:3000",
     "https://controle-financeiro-efvi.vercel.app"
-])
+]}})
 
-# Configurações
+# Configurações do app
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'chave-secreta-temporaria')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 
-# Inicializar extensões com o app
+# Inicializar extensões
 db.init_app(app)
 jwt.init_app(app)
 
-# Registrar blueprints
+# Registrar blueprints com prefixo /api
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(usuarios_bp, url_prefix='/api/usuarios')
 app.register_blueprint(despesas_bp, url_prefix='/api/despesas')
