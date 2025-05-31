@@ -1,0 +1,11 @@
+# Arquivo de configuração para deploy no Render
+
+# Configuração do serviço web
+build:
+  env:
+    PYTHON_VERSION: 3.9.0
+  steps:
+    - pip install -r requirements.txt
+
+# Comando para iniciar o serviço
+start: gunicorn app:app

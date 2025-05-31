@@ -1,0 +1,8 @@
+# Python
+venv/
+__pycache__/
+instance/
+
+# Node.js (caso frontend esteja junto)
+node_modules/
+package-lock.json
