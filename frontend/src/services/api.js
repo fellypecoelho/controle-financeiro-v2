@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Configuração base do axios
-const baseURL = 'https://controle-financeiro-api-lgpl.onrender.com'; // Nova URL do backend
+// Usa a variável de ambiente definida em .env
+const baseURL = process.env.REACT_APP_API_URL;
 
 // Criar instância do axios com configuração base
 const axiosInstance = axios.create({
