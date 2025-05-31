@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configuração base do axios
-const baseURL = 'https://controle-financeiro-api.onrender.com/api'; // Substitua pela URL do seu backend se for diferente
+const baseURL = 'https://controle-financeiro-api-lgpl.onrender.com'; // Nova URL do backend
 
 // Criar instância do axios com configuração base
 const axiosInstance = axios.create({
