@@ -1,30 +1,30 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime
 from app.models.cartao import Cartao
-from app.models.usuario import Usuario
 from app.models.despesa import Despesa
+from app.models.usuario import Usuario
 from app import db
-from datetime import datetime, timedelta
-import calendar
 
 cartoes_bp = Blueprint('cartoes', __name__)
 
 @cartoes_bp.route('/', methods=['GET'])
 @jwt_required()
 def listar_cartoes():
-    usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(int(usuario_id))
-    
-    # Parâmetros de filtro com conversão segura
-    usuario_id_filtro_str = request.args.get('usuario_id')
-    usuario_id_filtro = int(usuario_id_filtro_str) if usuario_id_filtro_str and usuario_id_filtro_str.strip() else None
+    # Parâmetros de filtro com tratamento de erros aprimorado
+    try:
+        ativo = request.args.get('ativo')
+        if ativo is not None:
+            ativo = ativo.lower() == 'true'
+    except (ValueError, TypeError) as e:
+        return jsonify({'error': f'Parâmetro inválido: {str(e)}'}), 400
     
     # Consulta base
     query = Cartao.query
     
     # Aplicar filtros
-    if usuario_id_filtro:
-        query = query.filter(Cartao.usuario_id == usuario_id_filtro)
+    if ativo is not None:
+        query = query.filter(Cartao.ativo == ativo)
     
     # Ordenar por nome
     cartoes = query.order_by(Cartao.nome).all()
@@ -54,32 +54,42 @@ def criar_cartao():
     data = request.get_json()
     
     # Validar dados obrigatórios
-    campos_obrigatorios = ['nome', 'dia_fechamento', 'dia_vencimento', 'usuario_id']
+    campos_obrigatorios = ['nome', 'limite', 'dia_fechamento', 'dia_vencimento']
     
     for campo in campos_obrigatorios:
         if campo not in data:
             return jsonify({'error': f'Campo {campo} é obrigatório'}), 400
     
-    # Validar dias
-    if not (1 <= data['dia_fechamento'] <= 31):
-        return jsonify({'error': 'Dia de fechamento deve estar entre 1 e 31'}), 400
+    # Validar valores
+    try:
+        limite = float(data['limite'])
+        if limite < 0:
+            return jsonify({'error': 'Limite não pode ser negativo'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Limite inválido'}), 400
     
-    if not (1 <= data['dia_vencimento'] <= 31):
-        return jsonify({'error': 'Dia de vencimento deve estar entre 1 e 31'}), 400
+    try:
+        dia_fechamento = int(data['dia_fechamento'])
+        if dia_fechamento < 1 or dia_fechamento > 31:
+            return jsonify({'error': 'Dia de fechamento deve estar entre 1 e 31'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Dia de fechamento inválido'}), 400
     
-    # Verificar se usuário existe
-    usuario_cartao = Usuario.query.get(data['usuario_id'])
-    if not usuario_cartao:
-        return jsonify({'error': 'Usuário não encontrado'}), 404
+    try:
+        dia_vencimento = int(data['dia_vencimento'])
+        if dia_vencimento < 1 or dia_vencimento > 31:
+            return jsonify({'error': 'Dia de vencimento deve estar entre 1 e 31'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Dia de vencimento inválido'}), 400
     
     # Criar cartão
     novo_cartao = Cartao(
         nome=data['nome'],
-        bandeira=data.get('bandeira', ''),
-        dia_fechamento=data['dia_fechamento'],
-        dia_vencimento=data['dia_vencimento'],
-        limite=data.get('limite', 0.0),
-        usuario_id=data['usuario_id']
+        limite=limite,
+        dia_fechamento=dia_fechamento,
+        dia_vencimento=dia_vencimento,
+        cor=data.get('cor', '#1976D2'),
+        ativo=data.get('ativo', True)
     )
     
     db.session.add(novo_cartao)
@@ -107,27 +117,38 @@ def atualizar_cartao(id):
     if 'nome' in data:
         cartao.nome = data['nome']
     
-    if 'bandeira' in data:
-        cartao.bandeira = data['bandeira']
+    if 'limite' in data:
+        try:
+            limite = float(data['limite'])
+            if limite < 0:
+                return jsonify({'error': 'Limite não pode ser negativo'}), 400
+            cartao.limite = limite
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Limite inválido'}), 400
     
     if 'dia_fechamento' in data:
-        if not (1 <= data['dia_fechamento'] <= 31):
-            return jsonify({'error': 'Dia de fechamento deve estar entre 1 e 31'}), 400
-        cartao.dia_fechamento = data['dia_fechamento']
+        try:
+            dia_fechamento = int(data['dia_fechamento'])
+            if dia_fechamento < 1 or dia_fechamento > 31:
+                return jsonify({'error': 'Dia de fechamento deve estar entre 1 e 31'}), 400
+            cartao.dia_fechamento = dia_fechamento
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Dia de fechamento inválido'}), 400
     
     if 'dia_vencimento' in data:
-        if not (1 <= data['dia_vencimento'] <= 31):
-            return jsonify({'error': 'Dia de vencimento deve estar entre 1 e 31'}), 400
-        cartao.dia_vencimento = data['dia_vencimento']
+        try:
+            dia_vencimento = int(data['dia_vencimento'])
+            if dia_vencimento < 1 or dia_vencimento > 31:
+                return jsonify({'error': 'Dia de vencimento deve estar entre 1 e 31'}), 400
+            cartao.dia_vencimento = dia_vencimento
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Dia de vencimento inválido'}), 400
     
-    if 'limite' in data:
-        cartao.limite = data['limite']
+    if 'cor' in data:
+        cartao.cor = data['cor']
     
-    if 'usuario_id' in data:
-        usuario_cartao = Usuario.query.get(data['usuario_id'])
-        if not usuario_cartao:
-            return jsonify({'error': 'Usuário não encontrado'}), 404
-        cartao.usuario_id = data['usuario_id']
+    if 'ativo' in data:
+        cartao.ativo = data['ativo']
     
     db.session.commit()
     
@@ -148,12 +169,9 @@ def excluir_cartao(id):
         return jsonify({'error': 'Cartão não encontrado'}), 404
     
     # Verificar se há despesas associadas
-    despesas_associadas = Despesa.query.filter_by(cartao_id=id).count()
-    if despesas_associadas > 0:
-        return jsonify({
-            'error': 'Não é possível excluir o cartão pois existem despesas associadas a ele',
-            'despesas_associadas': despesas_associadas
-        }), 400
+    despesas = Despesa.query.filter_by(cartao_id=id).first()
+    if despesas:
+        return jsonify({'error': 'Não é possível excluir cartão com despesas associadas'}), 400
     
     db.session.delete(cartao)
     db.session.commit()
@@ -162,17 +180,20 @@ def excluir_cartao(id):
 
 @cartoes_bp.route('/<int:id>/faturas', methods=['GET'])
 @jwt_required()
-def listar_faturas(id):
+def fatura_cartao(id):
     cartao = Cartao.query.get(id)
     if not cartao:
         return jsonify({'error': 'Cartão não encontrado'}), 404
     
-    # Parâmetros de filtro com conversão segura
-    mes_str = request.args.get('mes')
-    mes = int(mes_str) if mes_str and mes_str.strip() else None
-    
-    ano_str = request.args.get('ano')
-    ano = int(ano_str) if ano_str and ano_str.strip() else None
+    # Parâmetros com tratamento de erros seguro
+    try:
+        mes_str = request.args.get('mes')
+        mes = int(mes_str) if mes_str and mes_str.strip() else None
+        
+        ano_str = request.args.get('ano')
+        ano = int(ano_str) if ano_str and ano_str.strip() else None
+    except (ValueError, TypeError) as e:
+        return jsonify({'error': f'Parâmetro inválido: {str(e)}'}), 400
     
     # Se não informados, usar data atual
     hoje = datetime.now()
@@ -247,8 +268,11 @@ def proximas_faturas(id):
         return jsonify({'error': 'Cartão não encontrado'}), 404
     
     # Quantidade de faturas futuras a calcular com conversão segura
-    quantidade_str = request.args.get('quantidade')
-    quantidade = int(quantidade_str) if quantidade_str and quantidade_str.strip() else 3  # valor padrão
+    try:
+        quantidade_str = request.args.get('quantidade')
+        quantidade = int(quantidade_str) if quantidade_str and quantidade_str.strip() else 3  # valor padrão
+    except (ValueError, TypeError) as e:
+        return jsonify({'error': f'Parâmetro inválido: {str(e)}'}), 400
     
     hoje = datetime.now()
     faturas = []

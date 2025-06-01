@@ -1,34 +1,35 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime
 from app.models.aporte import Aporte
 from app.models.usuario import Usuario
 from app import db
-from datetime import datetime
 
 aportes_bp = Blueprint('aportes', __name__)
 
 @aportes_bp.route('/', methods=['GET'])
 @jwt_required()
 def listar_aportes():
-    usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
-    
-    # Parâmetros de filtro
+    # Parâmetros de filtro com tratamento de erros aprimorado
     try:
-        usuario_id_filtro = int(request.args.get('usuario_id') or '')
-    except ValueError:
-        usuario_id_filtro = None
-
-    data_inicio = request.args.get('data_inicio')
-    data_fim = request.args.get('data_fim')
-    busca = request.args.get('busca')
+        usuario_id = request.args.get('usuario_id', type=int)
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+        busca = request.args.get('busca')
+        
+        # Paginação
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        per_page = min(per_page, 100)  # Limitar tamanho da página
+    except (ValueError, TypeError) as e:
+        return jsonify({'error': f'Parâmetro inválido: {str(e)}'}), 400
     
     # Consulta base
     query = Aporte.query
     
     # Aplicar filtros
-    if usuario_id_filtro:
-        query = query.filter(Aporte.usuario_id == usuario_id_filtro)
+    if usuario_id:
+        query = query.filter(Aporte.usuario_id == usuario_id)
     
     if data_inicio:
         try:
@@ -48,9 +49,19 @@ def listar_aportes():
         query = query.filter(Aporte.observacao.ilike(f'%{busca}%'))
     
     # Ordenar por data
-    aportes = query.order_by(Aporte.data.desc()).all()
+    query = query.order_by(Aporte.data.desc())
     
-    return jsonify([aporte.to_dict() for aporte in aportes]), 200
+    # Aplicar paginação
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    # Preparar resposta
+    return jsonify({
+        'items': [aporte.to_dict() for aporte in pagination.items],
+        'total': pagination.total,
+        'pages': pagination.pages,
+        'page': page,
+        'per_page': per_page
+    }), 200
 
 @aportes_bp.route('/<int:id>', methods=['GET'])
 @jwt_required()
@@ -66,7 +77,7 @@ def obter_aporte(id):
 @jwt_required()
 def criar_aporte():
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario.tipo != 'admin':
@@ -80,6 +91,14 @@ def criar_aporte():
     for campo in campos_obrigatorios:
         if campo not in data:
             return jsonify({'error': f'Campo {campo} é obrigatório'}), 400
+    
+    # Validar valor
+    try:
+        valor = float(data['valor'])
+        if valor <= 0:
+            return jsonify({'error': 'Valor deve ser maior que zero'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Valor inválido'}), 400
     
     # Converter data de string para objeto date
     try:
@@ -95,7 +114,7 @@ def criar_aporte():
     # Criar aporte
     novo_aporte = Aporte(
         usuario_id=data['usuario_id'],
-        valor=data['valor'],
+        valor=valor,
         data=data_aporte,
         observacao=data.get('observacao', '')
     )
@@ -109,7 +128,7 @@ def criar_aporte():
 @jwt_required()
 def atualizar_aporte(id):
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario.tipo != 'admin':
@@ -129,7 +148,13 @@ def atualizar_aporte(id):
         aporte.usuario_id = data['usuario_id']
     
     if 'valor' in data:
-        aporte.valor = data['valor']
+        try:
+            valor = float(data['valor'])
+            if valor <= 0:
+                return jsonify({'error': 'Valor deve ser maior que zero'}), 400
+            aporte.valor = valor
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Valor inválido'}), 400
     
     if 'data' in data:
         try:
@@ -148,7 +173,7 @@ def atualizar_aporte(id):
 @jwt_required()
 def excluir_aporte(id):
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario.tipo != 'admin':
@@ -166,9 +191,12 @@ def excluir_aporte(id):
 @aportes_bp.route('/totais', methods=['GET'])
 @jwt_required()
 def totais_aportes():
-    # Parâmetros de filtro
-    usuario_id = request.args.get('usuario_id', type=int)
-    ano = request.args.get('ano', type=int, default=datetime.now().year)
+    # Parâmetros de filtro com tratamento de erros
+    try:
+        usuario_id = request.args.get('usuario_id', type=int)
+        ano = request.args.get('ano', type=int, default=datetime.now().year)
+    except (ValueError, TypeError) as e:
+        return jsonify({'error': f'Parâmetro inválido: {str(e)}'}), 400
     
     # Consulta base
     query = Aporte.query.filter(

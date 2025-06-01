@@ -3,7 +3,6 @@ from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
-
 from app import db, jwt
 from app.models import *
 from app.routes import *
@@ -12,13 +11,19 @@ from app.routes import *
 load_dotenv()
 
 app = Flask(__name__)
-app.url_map.strict_slashes = False  # <-- adiciona aqui
-
+app.url_map.strict_slashes = False
 
 # Configurações do app
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'chave-secreta-temporaria')
+
+# Configuração de segurança melhorada para JWT
+jwt_key = os.environ.get('JWT_SECRET_KEY')
+if not jwt_key:
+    # Em produção, isso deve gerar um erro, mas para desenvolvimento mantemos o fallback
+    jwt_key = 'chave-secreta-temporaria'
+    print("AVISO: JWT_SECRET_KEY não definida. Usando chave temporária. Isso não é seguro para produção!")
+app.config['JWT_SECRET_KEY'] = jwt_key
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 
 # Inicializar extensões
@@ -26,7 +31,8 @@ db.init_app(app)
 jwt.init_app(app)
 
 # CORS: permite acesso do frontend local e do domínio da Vercel
-CORS(app, resources={r"/api/*": {
+# Corrigido para permitir acesso a todas as rotas, não apenas /api/*
+CORS(app, resources={r"/*": {
     "origins": [
         "http://localhost:3000",
         "https://controle-financeiro-efvi.vercel.app"
