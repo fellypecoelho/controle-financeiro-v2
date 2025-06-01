@@ -10,14 +10,16 @@ usuarios_bp = Blueprint('usuarios', __name__)
 @jwt_required()
 def listar_usuarios():
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario.tipo != 'admin':
         return jsonify({'error': 'Permissão negada'}), 403
     
-    # Parâmetros de filtro
+    # Parâmetros de filtro com validação segura
     tipo = request.args.get('tipo')
+    tipo = tipo if tipo and tipo.strip() else None
+    
     ativo = request.args.get('ativo')
     
     # Consulta base
@@ -40,10 +42,10 @@ def listar_usuarios():
 @jwt_required()
 def obter_usuario(id):
     usuario_id = get_jwt_identity()
-    usuario_atual = Usuario.query.get(usuario_id)
+    usuario_atual = Usuario.query.get(int(usuario_id))
     
     # Verificar permissão
-    if usuario_atual.tipo != 'admin' and usuario_id != id:
+    if usuario_atual.tipo != 'admin' and int(usuario_id) != id:
         return jsonify({'error': 'Permissão negada'}), 403
     
     usuario = Usuario.query.get(id)
@@ -56,7 +58,7 @@ def obter_usuario(id):
 @jwt_required()
 def criar_usuario():
     usuario_id = get_jwt_identity()
-    usuario_atual = Usuario.query.get(usuario_id)
+    usuario_atual = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario_atual.tipo != 'admin':
@@ -99,10 +101,10 @@ def criar_usuario():
 @jwt_required()
 def atualizar_usuario(id):
     usuario_id = get_jwt_identity()
-    usuario_atual = Usuario.query.get(usuario_id)
+    usuario_atual = Usuario.query.get(int(usuario_id))
     
     # Verificar permissão
-    if usuario_atual.tipo != 'admin' and usuario_id != id:
+    if usuario_atual.tipo != 'admin' and int(usuario_id) != id:
         return jsonify({'error': 'Permissão negada'}), 403
     
     usuario = Usuario.query.get(id)
@@ -142,14 +144,14 @@ def atualizar_usuario(id):
 @jwt_required()
 def excluir_usuario(id):
     usuario_id = get_jwt_identity()
-    usuario_atual = Usuario.query.get(usuario_id)
+    usuario_atual = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario_atual.tipo != 'admin':
         return jsonify({'error': 'Permissão negada'}), 403
     
     # Não permitir excluir a si mesmo
-    if usuario_id == id:
+    if int(usuario_id) == id:
         return jsonify({'error': 'Não é possível excluir seu próprio usuário'}), 400
     
     usuario = Usuario.query.get(id)

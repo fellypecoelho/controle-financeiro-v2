@@ -13,14 +13,11 @@ cartoes_bp = Blueprint('cartoes', __name__)
 @jwt_required()
 def listar_cartoes():
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
-    # Parâmetros de filtro
-    try:
-     usuario_id_filtro = int(request.args.get('usuario_id') or '')
-    except ValueError:
-     usuario_id_filtro = None
-
+    # Parâmetros de filtro com conversão segura
+    usuario_id_filtro_str = request.args.get('usuario_id')
+    usuario_id_filtro = int(usuario_id_filtro_str) if usuario_id_filtro_str and usuario_id_filtro_str.strip() else None
     
     # Consulta base
     query = Cartao.query
@@ -48,7 +45,7 @@ def obter_cartao(id):
 @jwt_required()
 def criar_cartao():
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario.tipo != 'admin':
@@ -94,7 +91,7 @@ def criar_cartao():
 @jwt_required()
 def atualizar_cartao(id):
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario.tipo != 'admin':
@@ -140,7 +137,7 @@ def atualizar_cartao(id):
 @jwt_required()
 def excluir_cartao(id):
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario.tipo != 'admin':
@@ -170,9 +167,12 @@ def listar_faturas(id):
     if not cartao:
         return jsonify({'error': 'Cartão não encontrado'}), 404
     
-    # Parâmetros de filtro
-    mes = request.args.get('mes', type=int)
-    ano = request.args.get('ano', type=int)
+    # Parâmetros de filtro com conversão segura
+    mes_str = request.args.get('mes')
+    mes = int(mes_str) if mes_str and mes_str.strip() else None
+    
+    ano_str = request.args.get('ano')
+    ano = int(ano_str) if ano_str and ano_str.strip() else None
     
     # Se não informados, usar data atual
     hoje = datetime.now()
@@ -246,12 +246,9 @@ def proximas_faturas(id):
     if not cartao:
         return jsonify({'error': 'Cartão não encontrado'}), 404
     
-    # Quantidade de faturas futuras a calcular
-    try:
-        quantidade = int(request.args.get('quantidade') or '')
-    except ValueError:
-        quantidade = 3  # valor padrão
-
+    # Quantidade de faturas futuras a calcular com conversão segura
+    quantidade_str = request.args.get('quantidade')
+    quantidade = int(quantidade_str) if quantidade_str and quantidade_str.strip() else 3  # valor padrão
     
     hoje = datetime.now()
     faturas = []

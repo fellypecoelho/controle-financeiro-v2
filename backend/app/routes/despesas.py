@@ -14,28 +14,26 @@ despesas_bp = Blueprint('despesas', __name__)
 @jwt_required()
 def listar_despesas():
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
     # Parâmetros de filtro com conversão segura
-    try:
-        mes = int(request.args.get('mes') or '')
-    except ValueError:
-        mes = None
+    mes_str = request.args.get('mes')
+    mes = int(mes_str) if mes_str and mes_str.strip() else None
 
-    try:
-        ano = int(request.args.get('ano') or '')
-    except ValueError:
-        ano = None
+    ano_str = request.args.get('ano')
+    ano = int(ano_str) if ano_str and ano_str.strip() else None
 
-    try:
-        categoria_id = int(request.args.get('categoria_id') or '')
-    except ValueError:
-        categoria_id = None
+    categoria_id_str = request.args.get('categoria_id')
+    categoria_id = int(categoria_id_str) if categoria_id_str and categoria_id_str.strip() else None
 
     tipo_despesa = request.args.get('tipo_despesa')
+    tipo_despesa = tipo_despesa if tipo_despesa and tipo_despesa.strip() else None
+    
     status = request.args.get('status')
+    status = status if status and status.strip() else None
+    
     busca = request.args.get('busca')
-
+    busca = busca if busca and busca.strip() else None
     
     # Consulta base
     query = Despesa.query
@@ -81,7 +79,7 @@ def obter_despesa(id):
 @jwt_required()
 def criar_despesa():
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario.tipo != 'admin':
@@ -164,7 +162,7 @@ def criar_despesa():
 @jwt_required()
 def atualizar_despesa(id):
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario.tipo != 'admin':
@@ -252,7 +250,7 @@ def atualizar_despesa(id):
 @jwt_required()
 def excluir_despesa(id):
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    usuario = Usuario.query.get(int(usuario_id))
     
     # Verificar se é admin
     if usuario.tipo != 'admin':
@@ -263,7 +261,8 @@ def excluir_despesa(id):
         return jsonify({'error': 'Despesa não encontrada'}), 404
     
     # Verificar se tem despesas filhas
-    excluir_futuras = request.args.get('excluir_futuras', 'false').lower() == 'true'
+    excluir_futuras_str = request.args.get('excluir_futuras', 'false')
+    excluir_futuras = excluir_futuras_str.lower() == 'true'
     
     if excluir_futuras:
         # Excluir todas as despesas filhas
@@ -289,8 +288,11 @@ def excluir_despesa(id):
 @despesas_bp.route('/calendario', methods=['GET'])
 @jwt_required()
 def calendario():
-    mes = request.args.get('mes', type=int, default=datetime.now().month)
-    ano = request.args.get('ano', type=int, default=datetime.now().year)
+    mes_str = request.args.get('mes')
+    mes = int(mes_str) if mes_str and mes_str.strip() else datetime.now().month
+    
+    ano_str = request.args.get('ano')
+    ano = int(ano_str) if ano_str and ano_str.strip() else datetime.now().year
     
     # Obter primeiro e último dia do mês
     primeiro_dia = datetime(ano, mes, 1).date()
