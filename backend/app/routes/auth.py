@@ -21,8 +21,9 @@ def login():
     if not usuario.ativo:
         return jsonify({'error': 'Usuário desativado'}), 401
     
-    access_token = create_access_token(identity=usuario.id)
-    
+    # ✅ Correção: identity precisa ser string
+    access_token = create_access_token(identity=str(usuario.id))
+
     return jsonify({
         'token': access_token,
         'user': usuario.to_dict()
@@ -54,7 +55,8 @@ def registro():
     db.session.add(novo_usuario)
     db.session.commit()
     
-    access_token = create_access_token(identity=novo_usuario.id)
+    # ✅ Correção: identity precisa ser string
+    access_token = create_access_token(identity=str(novo_usuario.id))
     
     return jsonify({
         'token': access_token,
@@ -65,7 +67,9 @@ def registro():
 @jwt_required()
 def verificar():
     usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(usuario_id)
+    
+    # get_jwt_identity sempre retorna string; converter para int se necessário
+    usuario = Usuario.query.get(int(usuario_id))
     
     if not usuario:
         return jsonify({'error': 'Usuário não encontrado'}), 404
