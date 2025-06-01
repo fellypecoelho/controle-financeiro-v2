@@ -25,92 +25,95 @@ axiosInstance.interceptors.request.use(
 
 // Interceptor para tratamento de erros
 axiosInstance.interceptors.response.use(
-  (response) => response.data,
+  (response) => response.data, // Retorna diretamente response.data
   (error) => {
-    if (
-      error.response &&
-      error.response.status === 401 &&
-      !error.config.url.includes('/api/auth/login')
-    ) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+    // Verifica se o erro é de resposta e se o status é 401 (Não autorizado)
+    if (error.response && error.response.status === 401) {
+      // Verifica se a URL original da requisição NÃO é a de login para evitar loop
+      if (!error.config.url.includes('/auth/login')) {
+        console.error("Erro 401 - Não autorizado. Redirecionando para login.");
+        localStorage.removeItem('token');
+        // Força o redirecionamento para a página de login
+        // Use window.location.replace para não adicionar ao histórico
+        window.location.replace('/login'); 
+      }
     }
+    // Rejeita a promessa para que o erro possa ser tratado onde a chamada foi feita
     return Promise.reject(error);
   }
 );
 
-// Serviços de API
+// Serviços de API (com /api removido dos endpoints)
 const api = {
   // Autenticação
-  login: (email, senha) => axiosInstance.post('/api/auth/login', { email, senha }),
-  verificarToken: () => axiosInstance.get('/api/auth/verificar'),
+  login: (email, senha) => axiosInstance.post('/auth/login', { email, senha }),
+  verificarToken: () => axiosInstance.get('/auth/verificar'),
   
   // Usuários
-  listarUsuarios: (filtros = {}) => axiosInstance.get('/api/usuarios', { params: filtros }),
-  obterUsuario: (id) => axiosInstance.get(`/api/usuarios/${id}`),
-  criarUsuario: (dados) => axiosInstance.post('/api/usuarios', dados),
-  atualizarUsuario: (id, dados) => axiosInstance.put(`/api/usuarios/${id}`, dados),
-  excluirUsuario: (id) => axiosInstance.delete(`/api/usuarios/${id}`),
-  obterSaldosUsuarios: () => axiosInstance.get('/api/usuarios/saldos'),
+  listarUsuarios: (filtros = {}) => axiosInstance.get('/usuarios', { params: filtros }),
+  obterUsuario: (id) => axiosInstance.get(`/usuarios/${id}`),
+  criarUsuario: (dados) => axiosInstance.post('/usuarios', dados),
+  atualizarUsuario: (id, dados) => axiosInstance.put(`/usuarios/${id}`, dados),
+  excluirUsuario: (id) => axiosInstance.delete(`/usuarios/${id}`),
+  obterSaldosUsuarios: () => axiosInstance.get('/usuarios/saldos'),
   
   // Despesas
-  listarDespesas: (filtros = {}) => axiosInstance.get('/api/despesas', { params: filtros }),
-  obterDespesa: (id) => axiosInstance.get(`/api/despesas/${id}`),
-  criarDespesa: (dados) => axiosInstance.post('/api/despesas', dados),
-  atualizarDespesa: (id, dados) => axiosInstance.put(`/api/despesas/${id}`, dados),
+  listarDespesas: (filtros = {}) => axiosInstance.get('/despesas', { params: filtros }),
+  obterDespesa: (id) => axiosInstance.get(`/despesas/${id}`),
+  criarDespesa: (dados) => axiosInstance.post('/despesas', dados),
+  atualizarDespesa: (id, dados) => axiosInstance.put(`/despesas/${id}`, dados),
   excluirDespesa: (id, excluirFuturas = false) =>
-    axiosInstance.delete(`/api/despesas/${id}`, { params: { excluir_futuras: excluirFuturas } }),
+    axiosInstance.delete(`/despesas/${id}`, { params: { excluir_futuras: excluirFuturas } }),
   obterCalendario: (mes, ano) =>
-    axiosInstance.get('/api/despesas/calendario', { params: { mes, ano } }),
+    axiosInstance.get('/despesas/calendario', { params: { mes, ano } }),
   
   // Aportes
-  listarAportes: (filtros = {}) => axiosInstance.get('/api/aportes', { params: filtros }),
-  obterAporte: (id) => axiosInstance.get(`/api/aportes/${id}`),
-  criarAporte: (dados) => axiosInstance.post('/api/aportes', dados),
-  atualizarAporte: (id, dados) => axiosInstance.put(`/api/aportes/${id}`, dados),
-  excluirAporte: (id) => axiosInstance.delete(`/api/aportes/${id}`),
-  obterTotaisAportes: (filtros = {}) => axiosInstance.get('/api/aportes/totais', { params: filtros }),
+  listarAportes: (filtros = {}) => axiosInstance.get('/aportes', { params: filtros }),
+  obterAporte: (id) => axiosInstance.get(`/aportes/${id}`),
+  criarAporte: (dados) => axiosInstance.post('/aportes', dados),
+  atualizarAporte: (id, dados) => axiosInstance.put(`/aportes/${id}`, dados),
+  excluirAporte: (id) => axiosInstance.delete(`/aportes/${id}`),
+  obterTotaisAportes: (filtros = {}) => axiosInstance.get('/aportes/totais', { params: filtros }),
   
   // Cartões
-  listarCartoes: (filtros = {}) => axiosInstance.get('/api/cartoes', { params: filtros }),
-  obterCartao: (id) => axiosInstance.get(`/api/cartoes/${id}`),
-  criarCartao: (dados) => axiosInstance.post('/api/cartoes', dados),
-  atualizarCartao: (id, dados) => axiosInstance.put(`/api/cartoes/${id}`, dados),
-  excluirCartao: (id) => axiosInstance.delete(`/api/cartoes/${id}`),
+  listarCartoes: (filtros = {}) => axiosInstance.get('/cartoes', { params: filtros }),
+  obterCartao: (id) => axiosInstance.get(`/cartoes/${id}`),
+  criarCartao: (dados) => axiosInstance.post('/cartoes', dados),
+  atualizarCartao: (id, dados) => axiosInstance.put(`/cartoes/${id}`, dados),
+  excluirCartao: (id) => axiosInstance.delete(`/cartoes/${id}`),
   obterFaturaCartao: (id, mes, ano) =>
-    axiosInstance.get(`/api/cartoes/${id}/faturas`, { params: { mes, ano } }),
+    axiosInstance.get(`/cartoes/${id}/faturas`, { params: { mes, ano } }),
   obterProximasFaturas: (id, quantidade = 3) =>
-    axiosInstance.get(`/api/cartoes/${id}/proximas_faturas`, { params: { quantidade } }),
+    axiosInstance.get(`/cartoes/${id}/proximas_faturas`, { params: { quantidade } }),
   
   // Dashboard
   obterResumoDashboard: (mes, ano) =>
-    axiosInstance.get('/api/dashboard/resumo', { params: { mes, ano } }),
+    axiosInstance.get('/dashboard/resumo', { params: { mes, ano } }),
   obterEvolucaoDashboard: (meses = 6) =>
-    axiosInstance.get('/api/dashboard/evolucao', { params: { meses } }),
+    axiosInstance.get('/dashboard/evolucao', { params: { meses } }),
     
-  // Eventos do Calendário
+  // Eventos do Calendário (Ajustado para usar /despesas)
   listarEventosCalendario: (params = {}) => 
-    axiosInstance.get('/api/despesas/calendario', { params }),
-  criarEvento: (dados) => 
-    axiosInstance.post('/api/despesas/evento', dados),
-  atualizarEvento: (id, dados) => 
-    axiosInstance.put(`/api/despesas/evento/${id}`, dados),
-  excluirEvento: (id) => 
-    axiosInstance.delete(`/api/despesas/evento/${id}`),
+    axiosInstance.get('/despesas/calendario', { params }), // Reutiliza endpoint de calendário de despesas?
+  // Se houver endpoints específicos para eventos, ajuste abaixo:
+  // criarEvento: (dados) => axiosInstance.post('/eventos', dados),
+  // atualizarEvento: (id, dados) => axiosInstance.put(`/eventos/${id}`, dados),
+  // excluirEvento: (id) => axiosInstance.delete(`/eventos/${id}`),
     
   // Categorias
-  listarCategorias: () => axiosInstance.get('/api/categorias'),
-  criarCategoria: (dados) => axiosInstance.post('/api/categorias', dados),
-  atualizarCategoria: (id, dados) => axiosInstance.put(`/api/categorias/${id}`, dados),
-  excluirCategoria: (id) => axiosInstance.delete(`/api/categorias/${id}`),
+  listarCategorias: () => axiosInstance.get('/categorias'),
+  criarCategoria: (dados) => axiosInstance.post('/categorias', dados),
+  atualizarCategoria: (id, dados) => axiosInstance.put(`/categorias/${id}`, dados),
+  excluirCategoria: (id) => axiosInstance.delete(`/categorias/${id}`),
   
   // Preferências
-  obterPreferencias: () => axiosInstance.get('/api/usuarios/preferencias'),
-  atualizarPreferencias: (dados) => axiosInstance.put('/api/usuarios/preferencias', dados),
+  obterPreferencias: () => axiosInstance.get('/usuarios/preferencias'),
+  atualizarPreferencias: (dados) => axiosInstance.put('/usuarios/preferencias', dados),
   
   // Perfil
-  obterPerfilUsuario: () => axiosInstance.get('/api/usuarios/perfil'),
-  atualizarPerfilUsuario: (dados) => axiosInstance.put('/api/usuarios/perfil', dados),
+  obterPerfilUsuario: () => axiosInstance.get('/usuarios/perfil'),
+  atualizarPerfilUsuario: (dados) => axiosInstance.put('/usuarios/perfil', dados),
 };
 
 export default api;
+
