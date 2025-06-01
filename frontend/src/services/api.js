@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Usa a variável de ambiente definida em .env
-const baseURL = `${process.env.REACT_APP_API_URL}/api`;
+const baseURL = process.env.REACT_APP_API_URL;
 
 // Criar instância do axios com configuração base
 const axiosInstance = axios.create({

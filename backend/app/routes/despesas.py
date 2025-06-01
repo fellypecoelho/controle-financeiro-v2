@@ -8,7 +8,7 @@ from app import db
 from datetime import datetime, timedelta
 import calendar
 
-despesas_bp = Blueprint('despesas', __name__)
+despesas_bp = Blueprint('despesas', __name__) 
 
 @despesas_bp.route('/', methods=['GET'])
 @jwt_required()
@@ -16,13 +16,26 @@ def listar_despesas():
     usuario_id = get_jwt_identity()
     usuario = Usuario.query.get(usuario_id)
     
-    # Parâmetros de filtro
-    mes = request.args.get('mes', type=int)
-    ano = request.args.get('ano', type=int)
-    categoria_id = request.args.get('categoria_id', type=int)
+    # Parâmetros de filtro com conversão segura
+    try:
+        mes = int(request.args.get('mes') or '')
+    except ValueError:
+        mes = None
+
+    try:
+        ano = int(request.args.get('ano') or '')
+    except ValueError:
+        ano = None
+
+    try:
+        categoria_id = int(request.args.get('categoria_id') or '')
+    except ValueError:
+        categoria_id = None
+
     tipo_despesa = request.args.get('tipo_despesa')
     status = request.args.get('status')
     busca = request.args.get('busca')
+
     
     # Consulta base
     query = Despesa.query

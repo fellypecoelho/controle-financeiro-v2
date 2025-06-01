@@ -12,6 +12,8 @@ from app.routes import *
 load_dotenv()
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False  # <-- adiciona aqui
+
 
 # Configurações do app
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
@@ -28,9 +30,8 @@ CORS(app, resources={r"/api/*": {
     "origins": [
         "http://localhost:3000",
         "https://controle-financeiro-efvi.vercel.app"
-    ],
-    "supports_credentials": True,
-}})
+    ]
+}}, supports_credentials=True)
 
 # Registrar rotas com prefixo /api
 app.register_blueprint(auth_bp, url_prefix='/api/auth')

@@ -14,7 +14,11 @@ def listar_aportes():
     usuario = Usuario.query.get(usuario_id)
     
     # Parâmetros de filtro
-    usuario_id_filtro = request.args.get('usuario_id', type=int)
+    try:
+        usuario_id_filtro = int(request.args.get('usuario_id') or '')
+    except ValueError:
+        usuario_id_filtro = None
+
     data_inicio = request.args.get('data_inicio')
     data_fim = request.args.get('data_fim')
     busca = request.args.get('busca')

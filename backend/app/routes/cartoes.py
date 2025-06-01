@@ -16,7 +16,11 @@ def listar_cartoes():
     usuario = Usuario.query.get(usuario_id)
     
     # Parâmetros de filtro
-    usuario_id_filtro = request.args.get('usuario_id', type=int)
+    try:
+     usuario_id_filtro = int(request.args.get('usuario_id') or '')
+    except ValueError:
+     usuario_id_filtro = None
+
     
     # Consulta base
     query = Cartao.query
@@ -243,7 +247,11 @@ def proximas_faturas(id):
         return jsonify({'error': 'Cartão não encontrado'}), 404
     
     # Quantidade de faturas futuras a calcular
-    quantidade = request.args.get('quantidade', type=int, default=3)
+    try:
+        quantidade = int(request.args.get('quantidade') or '')
+    except ValueError:
+        quantidade = 3  # valor padrão
+
     
     hoje = datetime.now()
     faturas = []
